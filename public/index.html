@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Optimized Network Topology Visualization</title>
+    <script src="https://unpkg.com/vis-network@9.1.9/dist/vis-network.min.js"></script>
+    <link href="https://unpkg.com/vis-network@9.1.9/dist/dist/vis-network.min.css" rel="stylesheet" />
+    <style>
+        #network {
+            width: 100vw;
+            height: 100vh;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div id="network"></div>
+
+    <script>
+        async function fetchDevices() {
+            const [deviceRes, ifaceRes] = await Promise.all([
+                fetch('/api/discover'),
+                fetch('/api/router/interfaces')
+            ]);
+
+            let devices = await deviceRes.json();
+            const interfaces = await ifaceRes.json();
+
+            let nodes = new Map();  // Use a Map to prevent duplicate nodes
+            let edges = new Set();  // Use a Set to prevent duplicate edges
+
+            // ✅ Extract interface IPs for filtering
+            const interfaceIPs = new Set(interfaces.map(iface => iface.ip));
+
+            // ✅ Remove devices that match interface IPs
+            devices = devices.filter(device => !interfaceIPs.has(device.ip));
+
+            // ✅ Add router node
+            nodes.set(0, {
+                id: 0,
+                label: 'Router',
+                shape: 'ellipse',
+                color: '#ffcccc',
+                font: { size: 18, bold: true }
+            });
+
+            // ✅ Create interface nodes (avoid duplicates)
+            const interfaceNodes = new Map();
+            interfaces.forEach(iface => {
+                if (!interfaceNodes.has(iface.interface)) {
+                    const nodeId = nodes.size + 1;
+                    interfaceNodes.set(iface.interface, nodeId);
+                    nodes.set(nodeId, {
+                        id: nodeId,
+                        label: `Iface ${iface.interface}\n${iface.ip}`,
+                        shape: 'circle',
+                        color: '#ccffcc',
+                        font: { size: 16, bold: true }
+                    });
+                    edges.add(JSON.stringify({ from: 0, to: nodeId })); // ✅ Link Interface to Router
+                }
+            });
+
+            // ✅ Group devices by interface
+            const devicesByInterface = new Map();
+            devices.forEach(device => {
+                if (!devicesByInterface.has(device.interface)) {
+                    devicesByInterface.set(device.interface, []);
+                }
+                devicesByInterface.get(device.interface).push(device);
+            });
+
+            // ✅ Create device nodes and link them only through interfaces
+            devices.forEach(device => {
+                if (device.ip !== '172.16.23.130') { // Exclude router itself
+                    const deviceNodeId = nodes.size + 1;
+                    nodes.set(deviceNodeId, {
+                        id: deviceNodeId,
+                        label: `${device.ip}\n${device.mac}`,
+                        shape: 'box',
+                        font: { size: 14 }
+                    });
+
+                    // ✅ Link to correct interface node (NOT directly to Router)
+                    if (interfaceNodes.has(device.interface)) {
+                        edges.add(JSON.stringify({
+                            from: interfaceNodes.get(device.interface),
+                            to: deviceNodeId
+                        }));
+                    }
+
+                    // ✅ Link devices **on the same interface** together (Avoid duplicate edges)
+                    devicesByInterface.get(device.interface).forEach(peer => {
+                        if (peer.ip !== device.ip) {
+                            const peerNode = [...nodes.values()].find(n => n.label.includes(peer.ip));
+                            if (peerNode) {
+                                const edgeData = JSON.stringify({ from: deviceNodeId, to: peerNode.id, dashes: true });
+
+                                // ✅ Ensure no duplicate dashed edges
+                                if (!edges.has(edgeData)) {
+                                    edges.add(edgeData);
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+
+            // ✅ Convert Sets/Maps to arrays for vis.js
+            const visNodes = [...nodes.values()];
+            const visEdges = [...edges].map(e => JSON.parse(e));
+
+            // ✅ Render the network
+            const container = document.getElementById('network');
+            new vis.Network(container, { nodes: visNodes, edges: visEdges }, { layout: { improvedLayout: true } });
+        }
+
+        fetchDevices();
+    </script>
+</body>
+</html>
