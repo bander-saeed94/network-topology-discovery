@@ -46,7 +46,6 @@
                 });
             }
 
-
             const interfaceNodes = new Map();
             interfaces.forEach(iface => {
                 if (!interfaceNodes.has(iface.interface)) {
@@ -72,34 +71,32 @@
             });
 
             devices.forEach(device => {
-                if (device.ip !== '172.16.137.20') {
-                    const deviceNodeId = nodes.size + 1;
-                    nodes.set(deviceNodeId, {
-                        id: deviceNodeId,
-                        label: `${device.ip}\n${device.mac}`,
-                        shape: 'box',
-                        font: { size: 14 }
-                    });
+                const deviceNodeId = nodes.size + 1;
+                nodes.set(deviceNodeId, {
+                    id: deviceNodeId,
+                    label: `${device.ip}\n${device.mac}`,
+                    shape: 'box',
+                    font: { size: 14 }
+                });
 
-                    if (interfaceNodes.has(device.interface)) {
-                        edges.add(JSON.stringify({
-                            from: interfaceNodes.get(device.interface),
-                            to: deviceNodeId
-                        }));
-                    }
+                if (interfaceNodes.has(device.interface)) {
+                    edges.add(JSON.stringify({
+                        from: interfaceNodes.get(device.interface),
+                        to: deviceNodeId
+                    }));
+                }
 
-                    devicesByInterface.get(device.interface).forEach(peer => {
-                        if (peer.ip !== device.ip) {
-                            const peerNode = [...nodes.values()].find(n => n.label.includes(peer.ip));
-                            if (peerNode) {
-                                const edgeData = JSON.stringify({ from: deviceNodeId, to: peerNode.id, dashes: true });
-                                if (!edges.has(edgeData)) {
-                                    edges.add(edgeData);
-                                }
+                devicesByInterface.get(device.interface).forEach(peer => {
+                    if (peer.ip !== device.ip) {
+                        const peerNode = [...nodes.values()].find(n => n.label.includes(peer.ip));
+                        if (peerNode) {
+                            const edgeData = JSON.stringify({ from: deviceNodeId, to: peerNode.id, dashes: true });
+                            if (!edges.has(edgeData)) {
+                                edges.add(edgeData);
                             }
                         }
-                    });
-                }
+                    }
+                });
             });
 
             const visNodes = [...nodes.values()];
