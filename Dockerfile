@@ -1,9 +1,19 @@
 FROM ubuntu:18.04
 
-# Non-interactive for apt
-ENV DEBIAN_FRONTEND=noninteractive
-
 # Install dependencies
+RUN apt update && apt install -y \
+    iproute2 \           
+    net-tools \          
+    iputils-ping \       
+    dnsutils \           
+    tcpdump \            
+    curl \               
+    wget \               
+    telnet \             
+    traceroute \         
+    vim \                
+    isc-dhcp-client
+
 RUN apt-get update && apt-get install -y \
     curl \
     wget \
