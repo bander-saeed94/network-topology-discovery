@@ -1,8 +1,18 @@
 FROM node:20-alpine
 
 # Install required tools
-RUN apk add --no-cache git iproute2 bash
-
+RUN apk update && apk add --no-cache \
+    git \
+    bash \
+    iproute2 \
+    net-tools \
+    iputils \
+    bind-tools \
+    tcpdump \
+    curl \
+    wget \
+    busybox-extras \
+    traceroute
 # Set working directory
 WORKDIR /app
 
