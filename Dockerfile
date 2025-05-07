@@ -13,7 +13,7 @@ RUN apt update && apt install -y \
     traceroute \         
     vim \                
     isc-dhcp-client
-RUN apt install nodejs -y
+RUN apt install  --fix-missing nodejs -y
 RUN apt install npm -y
 
 # Create app directory
