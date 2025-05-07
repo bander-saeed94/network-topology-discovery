@@ -12,9 +12,7 @@ RUN apt update && apt install -y \
     telnet \             
     traceroute \         
     vim \                
-    isc-dhcp-client \
-    nodejs \
-    npm
+    isc-dhcp-client
 RUN apt install nodejs -y
 RUN apt install npm -y
 
