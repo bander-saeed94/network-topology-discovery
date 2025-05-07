@@ -4,15 +4,7 @@ FROM node:20-alpine
 RUN apk update && apk add --no-cache \
     git \
     bash \
-    iproute2 \
-    net-tools \
-    iputils \
-    bind-tools \
-    tcpdump \
-    curl \
-    wget \
-    busybox-extras \
-    traceroute
+    iproute2
 # Set working directory
 WORKDIR /app
 
