@@ -1,10 +1,19 @@
-FROM node:20-alpine
+FROM node:20
 
 # Install required tools
-RUN apk update && apk add --no-cache \
-    git \
-    bash 
-RUN apk add --no-cache iproute2 || apk add --no-cache iproute2-tools
+RUN apt update && apt install -y \
+    iproute2 \           
+    net-tools \          
+    iputils-ping \       
+    dnsutils \           
+    tcpdump \            
+    curl \               
+    wget \               
+    telnet \             
+    traceroute \         
+    vim \                
+    isc-dhcp-client  \
+    git
 
 # Set working directory
 WORKDIR /app
