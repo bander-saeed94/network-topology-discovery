@@ -12,6 +12,7 @@
   "keywords": [],
   "type": "commonjs",
   "dependencies": {
+    "default-gateway": "^7.2.2",
     "express": "^4.21.2",
     "net-snmp": "^3.20.0",
     "vis-network": "^9.1.9"
