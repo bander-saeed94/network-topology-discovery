@@ -10,3 +10,17 @@ npm init -y
 npm install express net-snmp vis-network
 
 ```
+
+
+docker image
+```
+ip addr add 172.16.2.202/24 dev eth0
+ip route add default via 172.16.2.1
+ip link set eth0 up
+```
+firefox image
+```
+ip addr add 172.16.2.203/24 dev eth0
+ip route add default via 172.16.2.1
+ip link set eth0 up
+```

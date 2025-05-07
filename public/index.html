@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Optimized Network Topology Visualization</title>
     <script src="https://unpkg.com/vis-network@9.1.9/dist/vis-network.min.js"></script>
@@ -12,6 +13,7 @@
         }
     </style>
 </head>
+
 <body>
     <div id="network"></div>
 
@@ -34,13 +36,16 @@
             const interfaceIPs = new Set(interfaces.map(iface => iface.ip));
             devices = devices.filter(device => !interfaceIPs.has(device.ip));
 
-            nodes.set(0, {
-                id: 0,
-                label: 'Router',
-                shape: 'ellipse',
-                color: '#ffcccc',
-                font: { size: 18, bold: true }
-            });
+            if (interfaces.length > 0) {
+                nodes.set(0, {
+                    id: 0,
+                    label: 'Router',
+                    shape: 'ellipse',
+                    color: '#ffcccc',
+                    font: { size: 18, bold: true }
+                });
+            }
+
 
             const interfaceNodes = new Map();
             interfaces.forEach(iface => {
@@ -133,4 +138,5 @@
         setInterval(fetchDevices, 10000);
     </script>
 </body>
+
 </html>
