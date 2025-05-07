@@ -1,29 +1,19 @@
-FROM node:10-alpine
+# Use an official Node.js LTS base image
+FROM node:20-alpine
 
-RUN mkdir -p /home/node/app/node_modules && chown -R node:node /home/node/app
-RUN apt update && apt install -y \
-    iproute2 \           
-    net-tools \          
-    iputils-ping \       
-    dnsutils \           
-    tcpdump \            
-    curl \               
-    wget \               
-    telnet \             
-    traceroute \         
-    vim \                
-    isc-dhcp-client 
-    
-WORKDIR /home/node/app
+# Set working directory inside the container
+WORKDIR /app
 
-COPY package*.json ./
+# Clone the GitHub repo directly
+RUN apk add --no-cache git && \
+    git clone https://github.com/bander-saeed94/network-topology-discovery.git . && \
+    rm -rf .git
 
-USER node
-
+# Install dependencies
 RUN npm install
 
-COPY --chown=node:node . .
+# Expose the port your app listens on
+EXPOSE 3000
 
-EXPOSE 8080
-
-CMD [ "node", "app.js" ]
+# Start the application
+CMD ["npm", "start"]
