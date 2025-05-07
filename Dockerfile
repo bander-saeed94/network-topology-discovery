@@ -14,10 +14,7 @@ RUN apt update && apt install -y \
     vim \                
     isc-dhcp-client \
     git \
-    bash \
-    ca-certificates \
-    gnupg \
-    lsb-release
+    bash 
 
 
 # Install Node.js 20.x from NodeSource
