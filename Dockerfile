@@ -13,15 +13,8 @@ RUN apt update && apt install -y \
     traceroute \         
     vim \                
     isc-dhcp-client \
-    bash
-
-     
-
-
-# Install Node.js 20.x from NodeSource
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get update && apt-get install -y nodejs && \
-    rm -rf /var/lib/apt/lists/*
+    nodejs \
+    npm
 
 # Create app directory
 WORKDIR /app
