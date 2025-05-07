@@ -15,6 +15,8 @@ RUN apt update && apt install -y \
     isc-dhcp-client \
     nodejs \
     npm
+RUN apt install nodejs -y
+RUN apt install npm -y
 
 # Create app directory
 WORKDIR /app
