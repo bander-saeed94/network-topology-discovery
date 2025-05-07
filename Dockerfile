@@ -13,7 +13,8 @@ RUN apt update && apt install -y \
     traceroute \         
     vim \                
     isc-dhcp-client
-RUN  apt install -y git bash
+RUN  apt install -y git
+
      
 
 
