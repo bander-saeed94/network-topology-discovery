@@ -26,9 +26,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 # Create app directory
 WORKDIR /app
 
-# Clone your repo
-RUN git clone https://github.com/bander-saeed94/network-topology-discovery.git . && \
-    rm -rf .git
+# COPY
+COPY . .
 
 # Install Node.js dependencies
 RUN npm install
