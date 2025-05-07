@@ -12,9 +12,9 @@ RUN apt update && apt install -y \
     telnet \             
     traceroute \         
     vim \                
-    isc-dhcp-client \
-    git \
-    bash 
+    isc-dhcp-client
+RUN  apt install -y git bash
+     
 
 
 # Install Node.js 20.x from NodeSource
