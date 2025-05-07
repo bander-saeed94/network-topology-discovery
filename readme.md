@@ -24,3 +24,9 @@ ip addr add 172.16.2.203/24 dev eth0
 ip route add default via 172.16.2.1
 ip link set eth0 up
 ```
+
+
+```
+
+ docker build -t topology-app   --build-arg CONTAINER_IP=172.16.137.21/24   --build-arg GATEWAY=172.16.137.20  .
+```
