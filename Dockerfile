@@ -12,7 +12,8 @@ RUN apt update && apt install -y \
     telnet \             
     traceroute \         
     vim \                
-    isc-dhcp-client
+    isc-dhcp-client \
+    bash
 
      
 
