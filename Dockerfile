@@ -16,7 +16,7 @@ RUN apt update && apt install -y \
 
 RUN apt-get update && apt-get install -y \
     git \
-    bash \
+    bash 
 #     ca-certificates \
 #     gnupg \
 #     lsb-release \
