@@ -3,8 +3,9 @@ FROM node:20-alpine
 # Install required tools
 RUN apk update && apk add --no-cache \
     git \
-    bash \
-    iproute2
+    bash 
+RUN apk add --no-cache iproute2 || apk add --no-cache iproute2-tools
+
 # Set working directory
 WORKDIR /app
 
