@@ -1,7 +1,7 @@
 FROM node:20
 
 # Install required tools
-RUN apt update && apt install -y iproute2
+RUN apt update && apt install -y iproute
 RUN apt update && apt install -y net-tools
 RUN apt update && apt install -y iputils-ping
 RUN apt update && apt install -y dnsutils
