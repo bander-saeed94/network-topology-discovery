@@ -15,23 +15,12 @@ RUN apt update && apt install -y \
     isc-dhcp-client
 
 RUN apt-get update && apt-get install -y \
-    curl \
-    wget \
     git \
     bash \
-    ca-certificates \
-    net-tools \
-    iproute2 \
-    iputils-ping \
-    dnsutils \
-    tcpdump \
-    telnet \
-    traceroute \
-    vim \
-    isc-dhcp-client \
-    gnupg \
-    lsb-release \
- && rm -rf /var/lib/apt/lists/*
+#     ca-certificates \
+#     gnupg \
+#     lsb-release \
+#  && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 20.x from NodeSource
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
