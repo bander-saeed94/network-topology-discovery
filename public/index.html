@@ -1,176 +1,167 @@
-<!DOCTYPE html>
-<html>
+<script>
+    var nodePositions = {};
+    var network = null;
 
-<head>
-    <title>Optimized Network Topology Visualization</title>
-    <script src="https://unpkg.com/vis-network@9.1.9/dist/vis-network.min.js"></script>
-    <link href="https://unpkg.com/vis-network@9.1.9/dist/dist/vis-network.min.css" rel="stylesheet" />
-    <style>
-        #network {
-            width: 100vw;
-            height: 100vh;
-            border: 1px solid #ddd;
-        }
-    </style>
-</head>
-
-<body>
-    <div id="network"></div>
-
-    <script>
-        var nodePositions = {};
-        var network = null;
-
-        function fetchDevices() {
-            Promise.all([
-                fetch('/api/discover'),
-                fetch('/api/router/interfaces')
-            ])
-            .then(function (responses) {
-                return Promise.all(responses.map(function (res) {
-                    return res.json();
-                }));
-            })
-            .then(function (data) {
-                var devices = data[0];
-                var interfaces = data[1];
-
-                var nodes = {};
-                var edges = {};
-
-                var interfaceIPs = {};
-                for (var i = 0; i < interfaces.length; i++) {
-                    interfaceIPs[interfaces[i].ip] = true;
+    function getJSON(url, callback) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", url, true);
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                try {
+                    var json = JSON.parse(xhr.responseText);
+                    callback(null, json);
+                } catch (e) {
+                    callback(e);
                 }
+            }
+        };
+        xhr.onerror = function () {
+            callback(new Error("Failed to load " + url));
+        };
+        xhr.send();
+    }
 
-                // Remove router interface IPs from device list
-                devices = devices.filter(function (device) {
-                    return !interfaceIPs[device.ip];
-                });
+    function fetchDevices() {
+        getJSON("/api/discover", function (err1, devices) {
+            if (err1) return console.error("Failed to load devices:", err1);
 
-                if (interfaces.length > 0) {
-                    nodes[0] = {
-                        id: 0,
-                        label: 'Router',
-                        shape: 'ellipse',
-                        color: '#ffcccc',
-                        font: { size: 18, bold: true }
-                    };
-                }
+            getJSON("/api/router/interfaces", function (err2, interfaces) {
+                if (err2) return console.error("Failed to load interfaces:", err2);
 
-                var interfaceNodes = {};
-                var nextId = 1;
-
-                for (var j = 0; j < interfaces.length; j++) {
-                    var iface = interfaces[j];
-                    if (interfaceNodes[iface.interface] === undefined) {
-                        interfaceNodes[iface.interface] = nextId;
-                        nodes[nextId] = {
-                            id: nextId,
-                            label: 'Iface ' + iface.interface + '\n' + iface.ip,
-                            shape: 'circle',
-                            color: '#ccffcc',
-                            font: { size: 16, bold: true }
-                        };
-                        edges[nextId] = { from: 0, to: nextId };
-                        nextId++;
-                    }
-                }
-
-                var devicesByInterface = {};
-                for (var k = 0; k < devices.length; k++) {
-                    var dev = devices[k];
-                    if (!devicesByInterface[dev.interface]) {
-                        devicesByInterface[dev.interface] = [];
-                    }
-                    devicesByInterface[dev.interface].push(dev);
-                }
-
-                for (var d = 0; d < devices.length; d++) {
-                    var device = devices[d];
-                    var deviceNodeId = nextId;
-                    nodes[deviceNodeId] = {
-                        id: deviceNodeId,
-                        label: device.ip + '\n' + device.mac,
-                        shape: 'box',
-                        font: { size: 14 }
-                    };
-
-                    if (interfaceNodes[device.interface]) {
-                        edges['edge_' + nextId] = {
-                            from: interfaceNodes[device.interface],
-                            to: deviceNodeId
-                        };
-                    }
-
-                    var peers = devicesByInterface[device.interface] || [];
-                    for (var p = 0; p < peers.length; p++) {
-                        var peer = peers[p];
-                        if (peer.ip !== device.ip) {
-                            var peerNode = null;
-                            for (var key in nodes) {
-                                if (nodes[key].label && nodes[key].label.indexOf(peer.ip) !== -1) {
-                                    peerNode = nodes[key];
-                                    break;
-                                }
-                            }
-
-                            if (peerNode) {
-                                var edgeKey = 'peer_' + deviceNodeId + '_' + peerNode.id;
-                                if (!edges[edgeKey]) {
-                                    edges[edgeKey] = {
-                                        from: deviceNodeId,
-                                        to: peerNode.id,
-                                        dashes: true
-                                    };
-                                }
-                            }
-                        }
-                    }
-
-                    nextId++;
-                }
-
-                var visNodes = Object.keys(nodes).map(function (k) {
-                    var node = nodes[k];
-                    if (nodePositions[node.id]) {
-                        node.x = nodePositions[node.id].x;
-                        node.y = nodePositions[node.id].y;
-                        node.fixed = { x: true, y: true };
-                    }
-                    return node;
-                });
-
-                var visEdges = Object.keys(edges).map(function (k) {
-                    return edges[k];
-                });
-
-                var container = document.getElementById('network');
-
-                if (!network) {
-                    network = new vis.Network(container, { nodes: visNodes, edges: visEdges }, {
-                        layout: { improvedLayout: true },
-                        physics: false
-                    });
-
-                    network.once("stabilized", function () {
-                        var positions = network.getPositions();
-                        for (var id in positions) {
-                            nodePositions[parseInt(id)] = positions[id];
-                        }
-                    });
-                } else {
-                    network.setData({ nodes: visNodes, edges: visEdges });
-                }
-            })
-            .catch(function (err) {
-                console.error("Error fetching topology:", err);
+                buildNetwork(devices, interfaces);
             });
+        });
+    }
+
+    function buildNetwork(devices, interfaces) {
+        var nodes = {};
+        var edges = {};
+
+        var interfaceIPs = {};
+        for (var i = 0; i < interfaces.length; i++) {
+            interfaceIPs[interfaces[i].ip] = true;
         }
 
-        fetchDevices();
-        setInterval(fetchDevices, 10000);
-    </script>
-</body>
+        devices = devices.filter(function (device) {
+            return !interfaceIPs[device.ip];
+        });
 
-</html>
+        if (interfaces.length > 0) {
+            nodes[0] = {
+                id: 0,
+                label: 'Router',
+                shape: 'ellipse',
+                color: '#ffcccc',
+                font: { size: 18, bold: true }
+            };
+        }
+
+        var interfaceNodes = {};
+        var nextId = 1;
+
+        for (var j = 0; j < interfaces.length; j++) {
+            var iface = interfaces[j];
+            if (interfaceNodes[iface.interface] === undefined) {
+                interfaceNodes[iface.interface] = nextId;
+                nodes[nextId] = {
+                    id: nextId,
+                    label: 'Iface ' + iface.interface + '\n' + iface.ip,
+                    shape: 'circle',
+                    color: '#ccffcc',
+                    font: { size: 16, bold: true }
+                };
+                edges[nextId] = { from: 0, to: nextId };
+                nextId++;
+            }
+        }
+
+        var devicesByInterface = {};
+        for (var k = 0; k < devices.length; k++) {
+            var dev = devices[k];
+            if (!devicesByInterface[dev.interface]) {
+                devicesByInterface[dev.interface] = [];
+            }
+            devicesByInterface[dev.interface].push(dev);
+        }
+
+        for (var d = 0; d < devices.length; d++) {
+            var device = devices[d];
+            var deviceNodeId = nextId;
+            nodes[deviceNodeId] = {
+                id: deviceNodeId,
+                label: device.ip + '\n' + device.mac,
+                shape: 'box',
+                font: { size: 14 }
+            };
+
+            if (interfaceNodes[device.interface]) {
+                edges['edge_' + nextId] = {
+                    from: interfaceNodes[device.interface],
+                    to: deviceNodeId
+                };
+            }
+
+            var peers = devicesByInterface[device.interface] || [];
+            for (var p = 0; p < peers.length; p++) {
+                var peer = peers[p];
+                if (peer.ip !== device.ip) {
+                    var peerNode = null;
+                    for (var key in nodes) {
+                        if (nodes[key].label && nodes[key].label.indexOf(peer.ip) !== -1) {
+                            peerNode = nodes[key];
+                            break;
+                        }
+                    }
+
+                    if (peerNode) {
+                        var edgeKey = 'peer_' + deviceNodeId + '_' + peerNode.id;
+                        if (!edges[edgeKey]) {
+                            edges[edgeKey] = {
+                                from: deviceNodeId,
+                                to: peerNode.id,
+                                dashes: true
+                            };
+                        }
+                    }
+                }
+            }
+
+            nextId++;
+        }
+
+        var visNodes = Object.keys(nodes).map(function (k) {
+            var node = nodes[k];
+            if (nodePositions[node.id]) {
+                node.x = nodePositions[node.id].x;
+                node.y = nodePositions[node.id].y;
+                node.fixed = { x: true, y: true };
+            }
+            return node;
+        });
+
+        var visEdges = Object.keys(edges).map(function (k) {
+            return edges[k];
+        });
+
+        var container = document.getElementById('network');
+
+        if (!network) {
+            network = new vis.Network(container, { nodes: visNodes, edges: visEdges }, {
+                layout: { improvedLayout: true },
+                physics: false
+            });
+
+            network.once("stabilized", function () {
+                var positions = network.getPositions();
+                for (var id in positions) {
+                    nodePositions[parseInt(id)] = positions[id];
+                }
+            });
+        } else {
+            network.setData({ nodes: visNodes, edges: visEdges });
+        }
+    }
+
+    fetchDevices();
+    setInterval(fetchDevices, 10000);
+</script>
