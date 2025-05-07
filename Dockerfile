@@ -16,18 +16,19 @@ RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && \
    
 
 # Install dependencies
-RUN apt update && apt install -y \
-    iproute2 \           
-    net-tools \          
-    iputils-ping \       
-    dnsutils \           
-    tcpdump \            
-    curl \               
-    wget \               
-    telnet \             
-    traceroute \         
-    vim \                
-    isc-dhcp-client \
+# Step 3: Install network utilities
+RUN apt-get update && \
+    apt-get install -y \
+    iproute2 \
+    net-tools \
+    iputils-ping \
+    dnsutils \
+    tcpdump \
+    wget \
+    telnet \
+    traceroute \
+    vim \
+    isc-dhcp-client && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Verify installation
