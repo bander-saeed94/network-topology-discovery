@@ -1,19 +1,19 @@
 FROM node:20
 
 # Install required tools
-RUN apt update && apt install -y \
-    iproute2 \           
-    net-tools \          
-    iputils-ping \       
-    dnsutils \           
-    tcpdump \            
-    curl \               
-    wget \               
-    telnet \             
-    traceroute \         
-    vim \                
-    isc-dhcp-client  \
-    git
+RUN apt update && apt install -y iproute2
+RUN apt update && apt install -y net-tools
+RUN apt update && apt install -y iputils-ping
+RUN apt update && apt install -y dnsutils
+RUN apt update && apt install -y tcpdump
+RUN apt update && apt install -y curl
+RUN apt update && apt install -y wget
+RUN apt update && apt install -y tcpdump
+RUN apt update && apt install -y telnet
+RUN apt update && apt install -y traceroute
+RUN apt update && apt install -y vim
+RUN apt update && apt install -y isc-dhcp-client 
+RUN apt update && apt install -y git
 
 # Set working directory
 WORKDIR /app
