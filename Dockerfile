@@ -1,4 +1,19 @@
-FROM ubuntu:18.04
+FROM ubuntu:22.04
+
+
+# Step 1: Update and install basic tools
+RUN apt-get update && \
+    apt-get install -y curl gnupg ca-certificates && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+
+# Step 2: Add NodeSource repo and install latest LTS Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && \
+    apt-get install -y nodejs && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+   
 
 # Install dependencies
 RUN apt update && apt install -y \
@@ -12,9 +27,12 @@ RUN apt update && apt install -y \
     telnet \             
     traceroute \         
     vim \                
-    isc-dhcp-client
-RUN apt install  --fix-missing nodejs -y
-RUN apt install npm -y
+    isc-dhcp-client \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Verify installation
+RUN node -v && npm -v
+
 
 # Create app directory
 WORKDIR /app
