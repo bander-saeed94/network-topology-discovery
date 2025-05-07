@@ -6,7 +6,7 @@ const gateway = require('default-gateway');
 
 async function getGatewayIP() {
     try {
-        const result = await gateway.v4();
+        const result = await gateway.gateway4sync();
         console.log("Detected gateway IP:", result.gateway);
         return result.gateway;
     } catch (err) {
