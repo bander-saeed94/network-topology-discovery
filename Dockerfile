@@ -17,8 +17,7 @@ RUN apt update && apt install -y \
     bash \
     ca-certificates \
     gnupg \
-    lsb-release \
- && rm -rf /var/lib/apt/lists/*
+    lsb-release
 
 
 # Install Node.js 20.x from NodeSource
