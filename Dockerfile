@@ -42,7 +42,7 @@ WORKDIR /app
 COPY . .
 
 # Install Node.js dependencies
-RUN npm install
+RUN npm install --verbose
 
 # Make entrypoint script executable
 RUN chmod +x /app/entrypoint.sh
