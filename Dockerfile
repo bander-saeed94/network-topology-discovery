@@ -31,6 +31,8 @@ RUN apt-get update && \
     isc-dhcp-client && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+
+RUN npm cache clean --force
 # Verify installation
 RUN node -v && npm -v
 
