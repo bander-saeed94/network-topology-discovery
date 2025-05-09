@@ -28,5 +28,5 @@ ip link set eth0 up
 
 ```
 
- docker build -t topology-app   --build-arg CONTAINER_IP=172.16.137.21/24   --build-arg GATEWAY=172.16.137.20  .
+ docker build -t topology-app   --build-arg CONTAINER_IP=172.16.23.21/24   --build-arg GATEWAY=172.16.23.20  .
 ```
