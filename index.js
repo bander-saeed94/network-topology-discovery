@@ -19,6 +19,23 @@ async function getGatewayIP() {
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Endpoint to trigger complete ARP discovery
+app.get('/api/topology', async (req, res) => {
+    try {
+        const routerIP = await getGatewayIP();;
+        // const routerIP = '172.16.23.130'; // Replace with your router IP
+        const communityString = 'public'; // Replace if different
+        const devices = await discoverRouterInterfaces(routerIP, communityString);
+
+        
+
+        res.json(devices);
+    } catch (error) {
+        console.error("Error in discovery:", error);
+        res.status(500).send('Discovery failed');
+    }
+});
+
+// Endpoint to trigger complete ARP discovery
 app.get('/api/discover', async (req, res) => {
     try {
         const routerIP = await getGatewayIP();;
