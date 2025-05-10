@@ -1,6 +1,7 @@
 const snmp = require('net-snmp');
 
-const session = snmp.createSession('172.16.23.130', 'public');
+let routerIp = '172.16.23.20'
+const session = snmp.createSession(routerIp, 'public');
 
 const arpOID = '1.3.6.1.2.1.4.22';
 
@@ -10,7 +11,9 @@ session.table(arpOID, 20, (error, table) => {
     } else {
         const devices = [];
 
+        // console.log(JSON.stringify(table))
         for (const entry of Object.values(table)) {
+            // console.log(JSON.stringify( entry))
             const iface = entry["1"];
             const macBuffer = entry["2"];
             const ip = entry["3"];
