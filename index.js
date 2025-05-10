@@ -3,6 +3,7 @@ const app = express();
 const path = require('path');
 const { discoverDevices, discoverNetwork, discoverCompleteARP, discoverRouterInterfaces } = require('./snmp_discovery');
 const gateway = require('default-gateway');
+const {topology} = require('./toplogy')
 
 async function getGatewayIP() {
     try {
@@ -24,11 +25,9 @@ app.get('/api/topology', async (req, res) => {
         const routerIP = await getGatewayIP();;
         // const routerIP = '172.16.23.130'; // Replace with your router IP
         const communityString = 'public'; // Replace if different
-        const devices = await discoverRouterInterfaces(routerIP, communityString);
+        const toplogyResult = await topology(routerIP, communityString);
 
-        
-
-        res.json(devices);
+        res.json(toplogyResult);
     } catch (error) {
         console.error("Error in discovery:", error);
         res.status(500).send('Discovery failed');

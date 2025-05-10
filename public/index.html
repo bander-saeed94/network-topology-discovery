@@ -23,6 +23,7 @@
 
         async function fetchDevices() {
             const [deviceRes, ifaceRes] = await Promise.all([
+                fetch('/api/topology'),
                 fetch('/api/discover'),
                 fetch('/api/router/interfaces')
             ]);
