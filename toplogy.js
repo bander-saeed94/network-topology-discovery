@@ -8,7 +8,6 @@ async function topology(defaultGateway, communityString) {
   const explored_routers = new Set();
 
   const startRouterIP = defaultGateway; // Replace with initial router IP
-  const communityString = communityString;
 
   async function exploreRouter(routerIP, routerName) {
     if (explored_routers.has(routerIP)) return;
