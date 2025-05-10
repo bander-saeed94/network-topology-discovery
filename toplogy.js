@@ -28,7 +28,10 @@ async function topology(defaultGateway, communityString) {
     const unexploredDevices = arpDevices.filter(d => !routerInterfaceIPs.includes(d.ip) && !explored_routers.has(d.ip));
 
     for (const device of unexploredDevices) {
-      const subDevices = await discoverCompleteARP(device.ip, communityString).catch(() => []);
+      console.log(`fetching arp table for ${device.ip}`)
+      const subDevices = await discoverCompleteARP(device.ip, communityString).catch((err) => {
+        return []
+    });
       console.log(`subdevices of ${device.ip}: ${subDevices}`)
       if (subDevices.length === 0) {
         // It's a host
@@ -47,9 +50,10 @@ async function topology(defaultGateway, communityString) {
   await exploreRouter(startRouterIP, 'r1');
 
   console.log(JSON.stringify(topology, null, 2));
-  return
+  return topology
 }
 
+// (topology)('172.16.23.20','public')
 module.exports = { topology};
 
 // topology();
