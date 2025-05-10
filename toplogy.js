@@ -29,7 +29,7 @@ async function topology(defaultGateway, communityString) {
 
     for (const device of unexploredDevices) {
       const subDevices = await discoverCompleteARP(device.ip, communityString).catch(() => []);
-
+      console.log(`subdevices of ${device.ip}: ${subDevices}`)
       if (subDevices.length === 0) {
         // It's a host
         routerEntry.host.push({ ip: device.ip });
@@ -47,6 +47,7 @@ async function topology(defaultGateway, communityString) {
   await exploreRouter(startRouterIP, 'r1');
 
   console.log(JSON.stringify(topology, null, 2));
+  return
 }
 
 module.exports = { topology};
@@ -72,3 +73,37 @@ module.exports = { topology};
 //     ...
 //   }
 // ]
+
+// [
+//   {
+//     "routerName": "r1",
+//     "interfaces": [
+//       {
+//         "interface": 2,
+//         "ip": "172.16.1.1"
+//       },
+//       {
+//         "interface": 4,
+//         "ip": "172.16.2.1"
+//       },
+//       {
+//         "interface": 3,
+//         "ip": "172.16.8.1"
+//       },
+//       {
+//         "interface": 1,
+//         "ip": "172.16.23.20"
+//       }
+//     ],
+//     "neighborRouter": [],
+//     "host": [
+//       {
+//         "ip": "172.16.23.21"
+//       },
+//       {
+//         "ip": "172.16.2.2"
+//       }
+//     ]
+//   }
+// ]
+
