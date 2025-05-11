@@ -34,13 +34,7 @@ async function topology(defaultGateway, communityString) {
       neighborRouter: [],
       host: []
     };
-
-    // 🟩 Mark this router's MAC addresses as known
-    const ownArp = await discoverCompleteARP(routerIp, communityString).catch(() => []);
-    for (const entry of ownArp) {
-      knownRouterMacs.add(entry.mac);
-    }
-
+    
     const arpEntries = await discoverCompleteARP(routerIp, communityString).catch(() => []);
 
     const filteredDevices = arpEntries.filter(d =>
@@ -67,6 +61,10 @@ async function topology(defaultGateway, communityString) {
       } else {
         routerEntry.host.push({ ip: device.ip });
       }
+    }
+    // 🟩 Mark this router's MAC addresses as known
+    for (const entry of arpEntries) {
+      knownRouterMacs.add(entry.mac);
     }
 
     topology.push(routerEntry);
