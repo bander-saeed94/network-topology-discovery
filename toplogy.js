@@ -34,13 +34,11 @@ async function topology(defaultGateway, communityString) {
       neighborRouter: [],
       host: []
     };
-    
+
     const arpEntries = await discoverCompleteARP(routerIp, communityString).catch(() => []);
 
     const filteredDevices = arpEntries.filter(d =>
-      !interfaceIPs.includes(d.ip) &&
-      !exploredRouterIPs.has(d.ip) &&
-      !knownRouterMacs.has(d.mac)
+      !interfaceIPs.includes(d.ip)
     );
 
     for (const device of filteredDevices) {
@@ -57,12 +55,15 @@ async function topology(defaultGateway, communityString) {
 
       if (isRouter) {
         routerEntry.neighborRouter.push({ ip: device.ip, if: device.interface });
-        await exploreRouter(device.ip);
+        if (!exploredRouterIPs.has(device.ip)) {
+          await exploreRouter(device.ip);
+        }
       } else {
         routerEntry.host.push({ ip: device.ip });
       }
     }
-    // 🟩 Mark this router's MAC addresses as known
+
+    // ✅ Now mark MACs after neighbors have been explored
     for (const entry of arpEntries) {
       knownRouterMacs.add(entry.mac);
     }
@@ -81,58 +82,4 @@ async function topology(defaultGateway, communityString) {
 
 module.exports = { topology };
 
-// topology();
-
-// [
-//   {
-//     "routerName": "r1",
-//     "interfaces": [
-//       { "ip": "172.16.23.20", "if": 1 },
-//       { "ip": "172.16.8.1", "if": 2 }
-//     ],
-//     "neighborRouter": [
-//       { "ip": "172.16.2.1", "if": 1 }
-//     ],
-//     "host": [
-//       { "ip": "172.16.8.2" }
-//     ]
-//   },
-//   {
-//     "routerName": "r2",
-//     ...
-//   }
-// ]
-
-// [
-//   {
-//     "routerName": "r1",
-//     "interfaces": [
-//       {
-//         "interface": 2,
-//         "ip": "172.16.1.1"
-//       },
-//       {
-//         "interface": 4,
-//         "ip": "172.16.2.1"
-//       },
-//       {
-//         "interface": 3,
-//         "ip": "172.16.8.1"
-//       },
-//       {
-//         "interface": 1,
-//         "ip": "172.16.23.20"
-//       }
-//     ],
-//     "neighborRouter": [],
-//     "host": [
-//       {
-//         "ip": "172.16.23.21"
-//       },
-//       {
-//         "ip": "172.16.2.2"
-//       }
-//     ]
-//   }
-// ]
 
