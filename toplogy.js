@@ -5,26 +5,28 @@ const {
 
 async function topology(defaultGateway, communityString) {
   const topology = [];
-  const exploredRouters = new Set();       // Prevent revisiting routers
-  const routerNameMap = new Map();         // Map IP -> router name
+  const exploredRouterIPs = new Set();         // All known router interface IPs
+  const routerNameMap = new Map();             // IP -> routerName
+  const knownRouterMacs = new Set();           // MACs belonging to routers
 
-  const startRouterIP = defaultGateway;
   let routerCounter = 1;
 
   async function exploreRouter(routerIp) {
-    if (exploredRouters.has(routerIp)) return;
+    if ([...exploredRouterIPs].includes(routerIp)) return;
 
-    // Assign consistent router name
-    let routerName = routerNameMap.get(routerIp);
-    if (!routerName) {
-      routerName = `r${routerCounter++}`;
-      routerNameMap.set(routerIp, routerName);
+    const interfaces = await discoverRouterInterfaces(routerIp, communityString).catch(() => []);
+    const interfaceIPs = interfaces.map(i => i.ip);
+
+    // Skip if any interface IP already discovered
+    for (const ip of interfaceIPs) {
+      if (exploredRouterIPs.has(ip)) return;
     }
 
-    exploredRouters.add(routerIp);
-
-    const interfaces = await discoverRouterInterfaces(routerIp, communityString);
-    const interfaceIPs = interfaces.map(i => i.ip);
+    const routerName = `r${routerCounter++}`;
+    for (const ip of interfaceIPs) {
+      routerNameMap.set(ip, routerName);
+      exploredRouterIPs.add(ip);
+    }
 
     const routerEntry = {
       routerName,
@@ -33,10 +35,18 @@ async function topology(defaultGateway, communityString) {
       host: []
     };
 
+    // 🟩 Mark this router's MAC addresses as known
+    const ownArp = await discoverCompleteARP(routerIp, communityString).catch(() => []);
+    for (const entry of ownArp) {
+      knownRouterMacs.add(entry.mac);
+    }
+
     const arpEntries = await discoverCompleteARP(routerIp, communityString).catch(() => []);
+
     const filteredDevices = arpEntries.filter(d =>
       !interfaceIPs.includes(d.ip) &&
-      !exploredRouters.has(d.ip)
+      !exploredRouterIPs.has(d.ip) &&
+      !knownRouterMacs.has(d.mac)
     );
 
     for (const device of filteredDevices) {
@@ -48,13 +58,11 @@ async function topology(defaultGateway, communityString) {
           isRouter = true;
         }
       } catch (err) {
-        // Consider device a host if SNMP fails
         isRouter = false;
       }
 
       if (isRouter) {
-        // Recursively explore neighbor router
-        routerEntry.neighborRouter.push({ ip: device.ip, if: 1 });  // if: 1 is placeholder
+        routerEntry.neighborRouter.push({ ip: device.ip, if: device.interface });
         await exploreRouter(device.ip);
       } else {
         routerEntry.host.push({ ip: device.ip });
@@ -64,16 +72,16 @@ async function topology(defaultGateway, communityString) {
     topology.push(routerEntry);
   }
 
-  await exploreRouter(startRouterIP);
+  await exploreRouter(defaultGateway);
 
   console.log(JSON.stringify(topology, null, 2));
-  return topology
+  return topology;
 }
 
-topology();
+// Example usage:
+// topology('172.16.23.20', 'public');
 
-// (topology)('172.16.23.20','public')
-module.exports = { topology};
+module.exports = { topology };
 
 // topology();
 

@@ -1,146 +1,140 @@
 [
-    {
-        "routerName": "r2",
-        "interfaces": [
-            {
-                "interface": 3,
-                "ip": "172.16.1.1"
-            },
-            {
-                "interface": 2,
-                "ip": "172.16.2.1"
-            },
-            {
-                "interface": 4,
-                "ip": "172.16.8.1"
-            },
-            {
-                "interface": 1,
-                "ip": "172.16.23.20"
-            }
-        ],
-        "neighborRouter": [],
-        "host": [
-            {
-                "ip": "172.16.23.2"
-            },
-            {
-                "ip": "172.16.23.21"
-            }
-        ]
-    },
-    {
-        "routerName": "r3",
-        "interfaces": [
-            {
-                "interface": 1,
-                "ip": "172.16.2.2"
-            },
-            {
-                "interface": 3,
-                "ip": "172.16.3.1"
-            },
-            {
-                "interface": 4,
-                "ip": "172.16.4.1"
-            },
-            {
-                "interface": 2,
-                "ip": "172.16.5.1"
-            }
-        ],
-        "neighborRouter": [],
-        "host": []
-    },
-    {
-        "routerName": "r3",
-        "interfaces": [
-            {
-                "interface": 1,
-                "ip": "172.16.5.2"
-            },
-            {
-                "interface": 2,
-                "ip": "172.16.6.1"
-            },
-            {
-                "interface": 3,
-                "ip": "172.16.7.1"
-            }
-        ],
-        "neighborRouter": [
-            {
-                "ip": "172.16.5.1",
-                "if": 1
-            }
-        ],
-        "host": []
-    },
-    {
-        "routerName": "r2",
-        "interfaces": [
-            {
-                "interface": 1,
-                "ip": "172.16.2.2"
-            },
-            {
-                "interface": 3,
-                "ip": "172.16.3.1"
-            },
-            {
-                "interface": 4,
-                "ip": "172.16.4.1"
-            },
-            {
-                "interface": 2,
-                "ip": "172.16.5.1"
-            }
-        ],
-        "neighborRouter": [
-            {
-                "ip": "172.16.2.1",
-                "if": 1
-            },
-            {
-                "ip": "172.16.5.2",
-                "if": 1
-            }
-        ],
-        "host": []
-    },
-    {
-        "routerName": "r1",
-        "interfaces": [
-            {
-                "interface": 3,
-                "ip": "172.16.1.1"
-            },
-            {
-                "interface": 2,
-                "ip": "172.16.2.1"
-            },
-            {
-                "interface": 4,
-                "ip": "172.16.8.1"
-            },
-            {
-                "interface": 1,
-                "ip": "172.16.23.20"
-            }
-        ],
-        "neighborRouter": [
-            {
-                "ip": "172.16.2.2",
-                "if": 1
-            }
-        ],
-        "host": [
-            {
-                "ip": "172.16.23.2"
-            },
-            {
-                "ip": "172.16.23.21"
-            }
-        ]
-    }
+  {
+    "routerName": "r3",
+    "interfaces": [
+      {
+        "interface": 3,
+        "ip": "172.16.1.1"
+      },
+      {
+        "interface": 2,
+        "ip": "172.16.2.1"
+      },
+      {
+        "interface": 4,
+        "ip": "172.16.8.1"
+      },
+      {
+        "interface": 1,
+        "ip": "172.16.23.20"
+      }
+    ],
+    "neighborRouter": [],
+    "host": [
+      {
+        "ip": "172.16.23.21"
+      }
+    ]
+  },
+  {
+    "routerName": "r5",
+    "interfaces": [
+      {
+        "interface": 1,
+        "ip": "172.16.2.2"
+      },
+      {
+        "interface": 3,
+        "ip": "172.16.3.1"
+      },
+      {
+        "interface": 4,
+        "ip": "172.16.4.1"
+      },
+      {
+        "interface": 2,
+        "ip": "172.16.5.1"
+      }
+    ],
+    "neighborRouter": [],
+    "host": []
+  },
+  {
+    "routerName": "r4",
+    "interfaces": [
+      {
+        "interface": 1,
+        "ip": "172.16.5.2"
+      },
+      {
+        "interface": 2,
+        "ip": "172.16.6.1"
+      },
+      {
+        "interface": 3,
+        "ip": "172.16.7.1"
+      }
+    ],
+    "neighborRouter": [
+      {
+        "ip": "172.16.5.1",
+        "if": 1
+      }
+    ],
+    "host": []
+  },
+  {
+    "routerName": "r2",
+    "interfaces": [
+      {
+        "interface": 1,
+        "ip": "172.16.2.2"
+      },
+      {
+        "interface": 3,
+        "ip": "172.16.3.1"
+      },
+      {
+        "interface": 4,
+        "ip": "172.16.4.1"
+      },
+      {
+        "interface": 2,
+        "ip": "172.16.5.1"
+      }
+    ],
+    "neighborRouter": [
+      {
+        "ip": "172.16.2.1",
+        "if": 1
+      },
+      {
+        "ip": "172.16.5.2",
+        "if": 1
+      }
+    ],
+    "host": []
+  },
+  {
+    "routerName": "r1",
+    "interfaces": [
+      {
+        "interface": 3,
+        "ip": "172.16.1.1"
+      },
+      {
+        "interface": 2,
+        "ip": "172.16.2.1"
+      },
+      {
+        "interface": 4,
+        "ip": "172.16.8.1"
+      },
+      {
+        "interface": 1,
+        "ip": "172.16.23.20"
+      }
+    ],
+    "neighborRouter": [
+      {
+        "ip": "172.16.2.2",
+        "if": 1
+      }
+    ],
+    "host": [
+      {
+        "ip": "172.16.23.21"
+      }
+    ]
+  }
 ]
