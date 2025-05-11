@@ -1,83 +1,95 @@
-<script>
-    let network = null;
-    const nodePositions = new Map();
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Network Topology</title>
+  <script src="/lib/vis-network/vis-network.min.js"></script>
+  <link href="/lib/vis-network/vis-network.min.css" rel="stylesheet" />
+  <style>
+    #network {
+      width: 100vw;
+      height: 100vh;
+      border: 1px solid lightgray;
+    }
+  </style>
+</head>
+<body>
+  <div id="network"></div>
+  <script>
+    async function loadTopology() {
+      const res = await fetch('/api/topology');
+      const topology = await res.json();
 
-    async function fetchTopology() {
-        const res = await fetch('/api/topology');
-        const topology = await res.json();
+      const nodes = new Map();
+      const edges = new Set();
 
-        const nodes = new Map();
-        const edges = new Set();
-
-        topology.forEach(router => {
-            // Add router node
-            nodes.set(router.routerName, {
-                id: router.routerName,
-                label: router.routerName,
-                shape: 'box',
-                color: '#ADD8E6',
-                font: { size: 16, bold: true }
-            });
-
-            // Add host nodes and edges
-            router.host.forEach(h => {
-                nodes.set(h.ip, {
-                    id: h.ip,
-                    label: h.ip,
-                    shape: 'ellipse',
-                    color: '#FFDD99'
-                });
-                edges.add(JSON.stringify({ from: router.routerName, to: h.ip }));
-            });
-
-            // Add neighbor routers as edges
-            router.neighborRouter.forEach(n => {
-                const neighbor = topology.find(r => r.interfaces.some(i => i.ip === n.ip));
-                const target = neighbor ? neighbor.routerName : n.ip;
-                if (!nodes.has(target)) {
-                    nodes.set(target, {
-                        id: target,
-                        label: target,
-                        shape: 'box',
-                        color: '#ADD8E6'
-                    });
-                }
-                edges.add(JSON.stringify({ from: router.routerName, to: target }));
-            });
+      // Add routers and their interfaces
+      topology.forEach(router => {
+        nodes.set(router.routerName, {
+          id: router.routerName,
+          label: router.routerName,
+          group: 'router'
         });
 
-        const visNodes = [...nodes.values()];
-        const visEdges = [...edges].map(e => JSON.parse(e));
+        // Connect to neighbor routers
+        router.neighborRouter.forEach(n => {
+          const neighborRouter = topology.find(r => r.interfaces.some(i => i.ip === n.ip));
+          if (neighborRouter) {
+            const neighborName = neighborRouter.routerName;
+            const edgeId = [router.routerName, neighborName].sort().join('-');
 
-        // Restore positions if previously saved
-        visNodes.forEach(node => {
-            if (nodePositions.has(node.id)) {
-                const pos = nodePositions.get(node.id);
-                node.x = pos.x;
-                node.y = pos.y;
-                node.fixed = { x: true, y: true };
+            if (!edges.has(edgeId)) {
+              edges.add(edgeId);
             }
+          }
         });
 
-        const container = document.getElementById('network');
-        const options = {
-            layout: { improvedLayout: true },
-            physics: false
-        };
-
-        if (!network) {
-            network = new vis.Network(container, { nodes: visNodes, edges: visEdges }, options);
-            network.once('stabilized', () => {
-                const positions = network.getPositions();
-                for (const [id, pos] of Object.entries(positions)) {
-                    nodePositions.set(id, pos);
-                }
+        // Connect to hosts
+        router.host.forEach(h => {
+          const hostId = h.ip;
+          if (!nodes.has(hostId)) {
+            nodes.set(hostId, {
+              id: hostId,
+              label: h.ip,
+              group: 'host'
             });
-        } else {
-            network.setData({ nodes: visNodes, edges: visEdges });
-        }
+          }
+          edges.add(`${router.routerName}->${hostId}`);
+        });
+      });
+
+      const data = {
+        nodes: Array.from(nodes.values()),
+        edges: Array.from(edges).map(e => {
+          if (e.includes('->')) {
+            const [from, to] = e.split('->');
+            return { from, to };
+          } else {
+            const [from, to] = e.split('-');
+            return { from, to };
+          }
+        })
+      };
+
+      const container = document.getElementById('network');
+      const options = {
+        groups: {
+          router: { shape: 'box', color: '#ADD8E6' },
+          host: { shape: 'ellipse', color: '#FFDD99' }
+        },
+        layout: {
+          hierarchical: {
+            enabled: true,
+            direction: 'LR',
+            sortMethod: 'hubsize'
+          }
+        },
+        physics: false
+      };
+
+      new vis.Network(container, data, options);
     }
 
-    fetchTopology();
-    setInterval(fetchTopology, 30000);
-</script>
+    loadTopology();
+  </script>
+</body>
+</html>
