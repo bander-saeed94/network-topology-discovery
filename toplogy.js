@@ -8,7 +8,7 @@ async function topology(defaultGateway, communityString) {
   const exploredRouters = new Set();       // Prevent revisiting routers
   const routerNameMap = new Map();         // Map IP -> router name
 
-  const communityString = defaultGateway;
+  const startRouterIP = defaultGateway;
   let routerCounter = 1;
 
   async function exploreRouter(routerIp) {
