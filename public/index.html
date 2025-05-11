@@ -1,78 +1,83 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Network Topology</title>
-  <script src="/lib/vis-network/vis-network.min.js"></script>
-  <link href="/lib/vis-network/vis-network.min.css" rel="stylesheet" />
-  <style>
-    #network {
-      width: 100vw;
-      height: 100vh;
-      border: 1px solid lightgray;
+<script>
+    let network = null;
+    const nodePositions = new Map();
+
+    async function fetchTopology() {
+        const res = await fetch('/api/topology');
+        const topology = await res.json();
+
+        const nodes = new Map();
+        const edges = new Set();
+
+        topology.forEach(router => {
+            // Add router node
+            nodes.set(router.routerName, {
+                id: router.routerName,
+                label: router.routerName,
+                shape: 'box',
+                color: '#ADD8E6',
+                font: { size: 16, bold: true }
+            });
+
+            // Add host nodes and edges
+            router.host.forEach(h => {
+                nodes.set(h.ip, {
+                    id: h.ip,
+                    label: h.ip,
+                    shape: 'ellipse',
+                    color: '#FFDD99'
+                });
+                edges.add(JSON.stringify({ from: router.routerName, to: h.ip }));
+            });
+
+            // Add neighbor routers as edges
+            router.neighborRouter.forEach(n => {
+                const neighbor = topology.find(r => r.interfaces.some(i => i.ip === n.ip));
+                const target = neighbor ? neighbor.routerName : n.ip;
+                if (!nodes.has(target)) {
+                    nodes.set(target, {
+                        id: target,
+                        label: target,
+                        shape: 'box',
+                        color: '#ADD8E6'
+                    });
+                }
+                edges.add(JSON.stringify({ from: router.routerName, to: target }));
+            });
+        });
+
+        const visNodes = [...nodes.values()];
+        const visEdges = [...edges].map(e => JSON.parse(e));
+
+        // Restore positions if previously saved
+        visNodes.forEach(node => {
+            if (nodePositions.has(node.id)) {
+                const pos = nodePositions.get(node.id);
+                node.x = pos.x;
+                node.y = pos.y;
+                node.fixed = { x: true, y: true };
+            }
+        });
+
+        const container = document.getElementById('network');
+        const options = {
+            layout: { improvedLayout: true },
+            physics: false
+        };
+
+        if (!network) {
+            network = new vis.Network(container, { nodes: visNodes, edges: visEdges }, options);
+            network.once('stabilized', () => {
+                const positions = network.getPositions();
+                for (const [id, pos] of Object.entries(positions)) {
+                    nodePositions.set(id, pos);
+                }
+            });
+        } else {
+            network.setData({ nodes: visNodes, edges: visEdges });
+        }
     }
-  </style>
-</head>
-<body>
-  <div id="network"></div>
-  <script>
-    async function loadTopology() {
-      const res = await fetch('/api/topology');  // Replace with your actual API endpoint
-      const topology = await res.json();
 
-      const nodes = new Map();
-      const edges = new Set();
-
-      topology.forEach(router => {
-        nodes.set(router.routerName, {
-          id: router.routerName,
-          label: router.routerName,
-          group: 'router'
-        });
-
-        router.neighborRouter.forEach(n => {
-          const target = topology.find(r => r.interfaces.some(i => i.ip === n.ip));
-          const to = target ? target.routerName : n.ip;
-          edges.add(`${router.routerName}->${to}`);
-          nodes.set(to, {
-            id: to,
-            label: to,
-            group: 'router'
-          });
-        });
-
-        router.host.forEach(h => {
-          const hostId = h.ip;
-          nodes.set(hostId, {
-            id: hostId,
-            label: h.ip,
-            group: 'host'
-          });
-          edges.add(`${router.routerName}->${hostId}`);
-        });
-      });
-
-      const data = {
-        nodes: Array.from(nodes.values()),
-        edges: Array.from(edges).map(e => {
-          const [from, to] = e.split('->');
-          return { from, to };
-        })
-      };
-
-      const container = document.getElementById('network');
-      const options = {
-        groups: {
-          router: { shape: 'box', color: '#ADD8E6' },
-          host: { shape: 'ellipse', color: '#FFDD99' }
-        },
-        layout: { improvedLayout: true },
-        physics: { stabilization: true }
-      };
-
-      new vis.Network(container, data, options);
-    }
-
-    loadTopology();
-  </script>
-</body>
-</html>
+    fetchTopology();
+    setInterval(fetchTopology, 10000);
+</script>
