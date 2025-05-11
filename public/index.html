@@ -1,140 +1,78 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <title>Optimized Network Topology Visualization</title>
-    <script src="/lib/vis-network/vis-network.min.js"></script>
-    <link href="/lib/vis-network/vis-network.min.css" rel="stylesheet" />
-    <style>
-        #network {
-            width: 100vw;
-            height: 100vh;
-            border: 1px solid #ddd;
-        }
-    </style>
+  <title>Network Topology</title>
+  <script src="/lib/vis-network/vis-network.min.js"></script>
+  <link href="/lib/vis-network/vis-network.min.css" rel="stylesheet" />
+  <style>
+    #network {
+      width: 100vw;
+      height: 100vh;
+      border: 1px solid lightgray;
+    }
+  </style>
 </head>
-
 <body>
-    <div id="network"></div>
+  <div id="network"></div>
+  <script>
+    async function loadTopology() {
+      const res = await fetch('/api/topology');  // Replace with your actual API endpoint
+      const topology = await res.json();
 
-    <script>
-        const nodePositions = new Map();
-        let network = null;
+      const nodes = new Map();
+      const edges = new Set();
 
-        async function fetchDevices() {
-            const [deviceRes, ifaceRes] = await Promise.all([
-                fetch('/api/topology'),
-                fetch('/api/discover'),
-                fetch('/api/router/interfaces')
-            ]);
+      topology.forEach(router => {
+        nodes.set(router.routerName, {
+          id: router.routerName,
+          label: router.routerName,
+          group: 'router'
+        });
 
-            let devices = await deviceRes.json();
-            const interfaces = await ifaceRes.json();
+        router.neighborRouter.forEach(n => {
+          const target = topology.find(r => r.interfaces.some(i => i.ip === n.ip));
+          const to = target ? target.routerName : n.ip;
+          edges.add(`${router.routerName}->${to}`);
+          nodes.set(to, {
+            id: to,
+            label: to,
+            group: 'router'
+          });
+        });
 
-            let nodes = new Map();
-            let edges = new Set();
+        router.host.forEach(h => {
+          const hostId = h.ip;
+          nodes.set(hostId, {
+            id: hostId,
+            label: h.ip,
+            group: 'host'
+          });
+          edges.add(`${router.routerName}->${hostId}`);
+        });
+      });
 
-            const interfaceIPs = new Set(interfaces.map(iface => iface.ip));
-            devices = devices.filter(device => !interfaceIPs.has(device.ip));
+      const data = {
+        nodes: Array.from(nodes.values()),
+        edges: Array.from(edges).map(e => {
+          const [from, to] = e.split('->');
+          return { from, to };
+        })
+      };
 
-            if (interfaces.length > 0) {
-                nodes.set(0, {
-                    id: 0,
-                    label: 'Router',
-                    shape: 'ellipse',
-                    color: '#ffcccc',
-                    font: { size: 18, bold: true }
-                });
-            }
+      const container = document.getElementById('network');
+      const options = {
+        groups: {
+          router: { shape: 'box', color: '#ADD8E6' },
+          host: { shape: 'ellipse', color: '#FFDD99' }
+        },
+        layout: { improvedLayout: true },
+        physics: { stabilization: true }
+      };
 
-            const interfaceNodes = new Map();
-            interfaces.forEach(iface => {
-                if (!interfaceNodes.has(iface.interface)) {
-                    const nodeId = nodes.size + 1;
-                    interfaceNodes.set(iface.interface, nodeId);
-                    nodes.set(nodeId, {
-                        id: nodeId,
-                        label: `Iface ${iface.interface}\n${iface.ip}`,
-                        shape: 'circle',
-                        color: '#ccffcc',
-                        font: { size: 16, bold: true }
-                    });
-                    edges.add(JSON.stringify({ from: 0, to: nodeId }));
-                }
-            });
+      new vis.Network(container, data, options);
+    }
 
-            const devicesByInterface = new Map();
-            devices.forEach(device => {
-                if (!devicesByInterface.has(device.interface)) {
-                    devicesByInterface.set(device.interface, []);
-                }
-                devicesByInterface.get(device.interface).push(device);
-            });
-
-            devices.forEach(device => {
-                const deviceNodeId = nodes.size + 1;
-                nodes.set(deviceNodeId, {
-                    id: deviceNodeId,
-                    label: `${device.ip}\n${device.mac}`,
-                    shape: 'box',
-                    font: { size: 14 }
-                });
-
-                if (interfaceNodes.has(device.interface)) {
-                    edges.add(JSON.stringify({
-                        from: interfaceNodes.get(device.interface),
-                        to: deviceNodeId
-                    }));
-                }
-
-                devicesByInterface.get(device.interface).forEach(peer => {
-                    if (peer.ip !== device.ip) {
-                        const peerNode = [...nodes.values()].find(n => n.label.includes(peer.ip));
-                        if (peerNode) {
-                            const edgeData = JSON.stringify({ from: deviceNodeId, to: peerNode.id, dashes: true });
-                            if (!edges.has(edgeData)) {
-                                edges.add(edgeData);
-                            }
-                        }
-                    }
-                });
-            });
-
-            const visNodes = [...nodes.values()];
-            const visEdges = [...edges].map(e => JSON.parse(e));
-
-            // Reuse existing positions
-            visNodes.forEach(node => {
-                if (nodePositions.has(node.id)) {
-                    const pos = nodePositions.get(node.id);
-                    node.x = pos.x;
-                    node.y = pos.y;
-                    node.fixed = { x: true, y: true };
-                }
-            });
-
-            const container = document.getElementById('network');
-
-            if (!network) {
-                network = new vis.Network(container, { nodes: visNodes, edges: visEdges }, {
-                    layout: { improvedLayout: true },
-                    physics: false
-                });
-
-                network.once("stabilized", () => {
-                    const positions = network.getPositions();
-                    for (const [id, pos] of Object.entries(positions)) {
-                        nodePositions.set(Number(id), pos);
-                    }
-                });
-            } else {
-                network.setData({ nodes: visNodes, edges: visEdges });
-            }
-        }
-
-        fetchDevices();
-        setInterval(fetchDevices, 10000);
-    </script>
+    loadTopology();
+  </script>
 </body>
-
 </html>
