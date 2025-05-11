@@ -5,53 +5,72 @@ const {
 
 async function topology(defaultGateway, communityString) {
   const topology = [];
-  const explored_routers = new Set();
+  const exploredRouters = new Set();       // Prevent revisiting routers
+  const routerNameMap = new Map();         // Map IP -> router name
 
-  const startRouterIP = defaultGateway; // Replace with initial router IP
+  const communityString = defaultGateway;
+  let routerCounter = 1;
 
-  async function exploreRouter(routerIP, routerName) {
-    if (explored_routers.has(routerIP)) return;
-    explored_routers.add(routerIP);
+  async function exploreRouter(routerIp) {
+    if (exploredRouters.has(routerIp)) return;
+
+    // Assign consistent router name
+    let routerName = routerNameMap.get(routerIp);
+    if (!routerName) {
+      routerName = `r${routerCounter++}`;
+      routerNameMap.set(routerIp, routerName);
+    }
+
+    exploredRouters.add(routerIp);
+
+    const interfaces = await discoverRouterInterfaces(routerIp, communityString);
+    const interfaceIPs = interfaces.map(i => i.ip);
 
     const routerEntry = {
       routerName,
-      interfaces: [],
+      interfaces,
       neighborRouter: [],
       host: []
     };
 
-    const routerInterfaces = await discoverRouterInterfaces(routerIP, communityString);
-    const routerInterfaceIPs = routerInterfaces.map(iface => iface.ip);
-    routerEntry.interfaces = routerInterfaces;
+    const arpEntries = await discoverCompleteARP(routerIp, communityString).catch(() => []);
+    const filteredDevices = arpEntries.filter(d =>
+      !interfaceIPs.includes(d.ip) &&
+      !exploredRouters.has(d.ip)
+    );
 
-    const arpDevices = await discoverCompleteARP(routerIP, communityString);
-    const unexploredDevices = arpDevices.filter(d => !routerInterfaceIPs.includes(d.ip) && !explored_routers.has(d.ip));
+    for (const device of filteredDevices) {
+      let isRouter = false;
 
-    for (const device of unexploredDevices) {
-      console.log(`fetching arp table for ${device.ip}`)
-      const subDevices = await discoverCompleteARP(device.ip, communityString).catch((err) => {
-        return []
-    });
-      console.log(`subdevices of ${device.ip}: ${subDevices}`)
-      if (subDevices.length === 0) {
-        // It's a host
-        routerEntry.host.push({ ip: device.ip });
+      try {
+        const subArp = await discoverCompleteARP(device.ip, communityString);
+        if (subArp.length > 0) {
+          isRouter = true;
+        }
+      } catch (err) {
+        // Consider device a host if SNMP fails
+        isRouter = false;
+      }
+
+      if (isRouter) {
+        // Recursively explore neighbor router
+        routerEntry.neighborRouter.push({ ip: device.ip, if: 1 });  // if: 1 is placeholder
+        await exploreRouter(device.ip);
       } else {
-        // It's a router
-        routerEntry.neighborRouter.push({ ip: device.ip, if: 1 }); // TODO: refine ifIndex
-        await exploreRouter(device.ip, `r${topology.length + 2}`);
+        routerEntry.host.push({ ip: device.ip });
       }
     }
 
     topology.push(routerEntry);
   }
 
-  // Begin recursive exploration
-  await exploreRouter(startRouterIP, 'r1');
+  await exploreRouter(startRouterIP);
 
   console.log(JSON.stringify(topology, null, 2));
   return topology
 }
+
+topology();
 
 // (topology)('172.16.23.20','public')
 module.exports = { topology};
