@@ -49,7 +49,7 @@
         });
       });
 
-      // Add router-router edges (fixed labeling and curved lines)
+      // Add router-router edges with curved paths
       topology.forEach(router => {
         router.neighborRouter.forEach(n => {
           const neighborRouter = topology.find(r =>
@@ -80,15 +80,15 @@
             from,
             to,
             label: `${thisIf?.ip || '?'} ↔ ${thatIf?.ip || n.ip}`,
-            font: { align: 'middle' },
+            font: { align: 'middle', multi: true },
             arrows: { to: { enabled: false } },
-            smooth: { enabled: true, type: 'curvedCW', roundness: 0.2 },
+            smooth: { enabled: true, type: 'curvedCW', roundness: 0.3 },
             title: `Link between ${from} and ${to}`
           });
         });
       });
 
-      // Add host nodes and edges (with 'via' prefix and straight lines)
+      // Add host nodes and edges (with router-level + 1)
       topology.forEach(router => {
         router.host.forEach(h => {
           const hostId = h.ip;
@@ -96,7 +96,8 @@
             nodes.set(hostId, {
               id: hostId,
               label: h.ip,
-              group: 'host'
+              group: 'host',
+              level: (router.level || 1) + 1  // ✅ Ensure all nodes have levels
             });
           }
 
@@ -105,12 +106,14 @@
           );
 
           edges.push({
+            id: `${router.routerName}->${hostId}`,
             from: router.routerName,
             to: hostId,
             label: matchedInterface ? `via ${matchedInterface.ip}` : '',
-            font: { align: 'top' },
+            font: { align: 'top', multi: true },
             arrows: { to: { enabled: false } },
-            smooth: false
+            smooth: { enabled: true, type: 'curvedCCW', roundness: 0.3 },
+            title: `Host ${hostId}`
           });
         });
       });
@@ -146,7 +149,7 @@
     }
 
     loadTopology();
-    setInterval(loadTopology, 15  * 1000); // Refresh every 15 minutes
+    setInterval(loadTopology, 15 * 1000); // Refresh every 15 minutes
   </script>
 </body>
 </html>
