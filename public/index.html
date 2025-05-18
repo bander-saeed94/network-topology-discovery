@@ -49,7 +49,7 @@
         });
       });
 
-      // Add router-router edges (using interface ID and dynamic levels)
+      // Add router-router edges (fixed labeling and curved lines)
       topology.forEach(router => {
         router.neighborRouter.forEach(n => {
           const neighborRouter = topology.find(r =>
@@ -81,12 +81,14 @@
             to,
             label: `${thisIf?.ip || '?'} ↔ ${thatIf?.ip || n.ip}`,
             font: { align: 'middle' },
-            arrows: { to: { enabled: false } }
+            arrows: { to: { enabled: false } },
+            smooth: { enabled: true, type: 'curvedCW', roundness: 0.2 },
+            title: `Link between ${from} and ${to}`
           });
         });
       });
 
-      // Add host nodes and edges
+      // Add host nodes and edges (with 'via' prefix and straight lines)
       topology.forEach(router => {
         router.host.forEach(h => {
           const hostId = h.ip;
@@ -106,7 +108,9 @@
             from: router.routerName,
             to: hostId,
             label: matchedInterface ? `via ${matchedInterface.ip}` : '',
-            font: { align: 'top' }
+            font: { align: 'top' },
+            arrows: { to: { enabled: false } },
+            smooth: false
           });
         });
       });
@@ -142,7 +146,7 @@
     }
 
     loadTopology();
-    setInterval(loadTopology, 15 * 1000); // Refresh every 15 minutes
+    setInterval(loadTopology, 15  * 1000); // Refresh every 15 minutes
   </script>
 </body>
 </html>
