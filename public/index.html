@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Enhanced Network Topology</title>
+  <title>Network Topology</title>
   <script src="/lib/vis-network/vis-network.min.js"></script>
   <link href="/lib/vis-network/vis-network.min.css" rel="stylesheet" />
   <style>
@@ -36,19 +36,20 @@
       const nodes = new Map();
       const edges = [];
 
-      // Add router nodes
+      // Add router nodes with level
       topology.forEach(router => {
         nodes.set(router.routerName, {
           id: router.routerName,
           label: router.routerName,
           group: 'router',
+          level: router.level || 1,
           title: router.interfaces
             .map(i => `Interface ${i.interface}: ${i.ip} / ${i.netmask}`)
             .join('\n')
         });
       });
 
-      // Add router-router edges (with fixes)
+      // Add router-router edges (using interface ID and dynamic levels)
       topology.forEach(router => {
         router.neighborRouter.forEach(n => {
           const neighborRouter = topology.find(r =>
@@ -57,26 +58,27 @@
           if (!neighborRouter) return;
 
           const neighborName = neighborRouter.routerName;
-
-          // ❌ Skip self-links
           if (router.routerName === neighborName) return;
 
-          const thisIf = router.interfaces.find(i =>
-            inSameSubnet(i.ip, n.ip, i.netmask)
-          );
+          const thisIf = router.interfaces.find(i => i.interface === n.if);
           const thatIf = neighborRouter.interfaces.find(i =>
             inSameSubnet(i.ip, n.ip, i.netmask)
           );
 
-          const edgeId = [router.routerName, neighborName].sort().join('-');
+          const from = router.level < neighborRouter.level
+            ? router.routerName
+            : neighborRouter.routerName;
+          const to = router.level < neighborRouter.level
+            ? neighborRouter.routerName
+            : router.routerName;
 
-          // ❌ Skip duplicate edges
+          const edgeId = [from, to].join('-');
           if (edges.some(e => e.id === edgeId)) return;
 
           edges.push({
             id: edgeId,
-            from: router.routerName,
-            to: neighborName,
+            from,
+            to,
             label: `${thisIf?.ip || '?'} ↔ ${thatIf?.ip || n.ip}`,
             font: { align: 'middle' },
             arrows: { to: { enabled: false } }
@@ -124,8 +126,8 @@
             enabled: true,
             direction: 'LR',
             sortMethod: 'hubsize',
-            levelSeparation: 300,   // ⇠ controls distance between levels
-            nodeSpacing: 200        // ⇠ controls distance between siblings
+            levelSeparation: 300,
+            nodeSpacing: 200
           }
         },
         physics: false,
@@ -139,9 +141,8 @@
       new vis.Network(container, data, options);
     }
 
-    // Load on start and refresh every 15 minutes
     loadTopology();
-    setInterval(loadTopology, 15  * 1000);
+    setInterval(loadTopology, 15 * 1000); // Refresh every 15 minutes
   </script>
 </body>
 </html>
