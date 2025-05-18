@@ -36,7 +36,7 @@
       const nodes = new Map();
       const edges = [];
 
-      // Add router nodes with tooltips
+      // Add router nodes
       topology.forEach(router => {
         nodes.set(router.routerName, {
           id: router.routerName,
@@ -48,33 +48,39 @@
         });
       });
 
-      // Add router-router edges
+      // Add router-router edges (with fixes)
       topology.forEach(router => {
         router.neighborRouter.forEach(n => {
           const neighborRouter = topology.find(r =>
             r.interfaces.some(i => inSameSubnet(i.ip, n.ip, i.netmask))
           );
-          if (neighborRouter) {
-            const neighborName = neighborRouter.routerName;
-            const thisIf = router.interfaces.find(i =>
-              inSameSubnet(i.ip, n.ip, i.netmask)
-            );
-            const thatIf = neighborRouter.interfaces.find(i =>
-              inSameSubnet(i.ip, n.ip, i.netmask)
-            );
+          if (!neighborRouter) return;
 
-            const edgeId = [router.routerName, neighborName].sort().join('-');
-            if (!edges.some(e => e.id === edgeId)) {
-              edges.push({
-                id: edgeId,
-                from: router.routerName,
-                to: neighborName,
-                label: `${thisIf?.ip || '?'} ↔ ${thatIf?.ip || n.ip}`,
-                font: { align: 'middle' },
-                arrows: { to: { enabled: false } }
-              });
-            }
-          }
+          const neighborName = neighborRouter.routerName;
+
+          // ❌ Skip self-links
+          if (router.routerName === neighborName) return;
+
+          const thisIf = router.interfaces.find(i =>
+            inSameSubnet(i.ip, n.ip, i.netmask)
+          );
+          const thatIf = neighborRouter.interfaces.find(i =>
+            inSameSubnet(i.ip, n.ip, i.netmask)
+          );
+
+          const edgeId = [router.routerName, neighborName].sort().join('-');
+
+          // ❌ Skip duplicate edges
+          if (edges.some(e => e.id === edgeId)) return;
+
+          edges.push({
+            id: edgeId,
+            from: router.routerName,
+            to: neighborName,
+            label: `${thisIf?.ip || '?'} ↔ ${thatIf?.ip || n.ip}`,
+            font: { align: 'middle' },
+            arrows: { to: { enabled: false } }
+          });
         });
       });
 
@@ -131,9 +137,9 @@
       new vis.Network(container, data, options);
     }
 
-    // Load initially and refresh every 15 mins
+    // Load on start and refresh every 15 minutes
     loadTopology();
-    setInterval(loadTopology, 15 * 1000);
+    setInterval(loadTopology, 15  * 1000);
   </script>
 </body>
 </html>
