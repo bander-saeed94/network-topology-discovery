@@ -16,12 +16,14 @@ async function discoverRouterInterfaces(routerIp, community = 'public') {
     try {
         const ipAddrTableOID = '1.3.6.1.2.1.4.20'; // IP Address Table
         const ipTable = await snmpTable(session, ipAddrTableOID);
-
         for (const [ip, entry] of Object.entries(ipTable)) {
             const ifaceIndex = entry['2']; // Correct interface index OID
+            const netmask = entry['3']; // ipAdEntNetMask
+
             interfaces.push({
                 interface: ifaceIndex,
-                ip: ip
+                ip: ip,
+                netmask: netmask
             });
         }
         console.log('Router Interfaces:', interfaces);

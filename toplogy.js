@@ -3,6 +3,15 @@ const {
   discoverRouterInterfaces
 } = require('./snmp_discovery');
 
+function ipToInt(ip) {
+  return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0);
+}
+
+function inSameSubnet(ip1, ip2, netmask) {
+  const mask = ipToInt(netmask);
+  return (ipToInt(ip1) & mask) === (ipToInt(ip2) & mask);
+}
+
 async function topology(defaultGateway, communityString) {
   const topology = [];
   const exploredRouterIPs = new Set();         // All known router interface IPs
@@ -54,7 +63,9 @@ async function topology(defaultGateway, communityString) {
       }
 
       if (isRouter) {
-        routerEntry.neighborRouter.push({ ip: device.ip, if: device.interface });
+        // Match by subnet using mask from interfaces
+        const matchedInterface = interfaces.find(iface => inSameSubnet(iface.ip, device.ip, iface.netmask));
+        routerEntry.neighborRouter.push({ ip: device.ip, if: matchedInterface?.interface || null });
         if (!exploredRouterIPs.has(device.ip)) {
           await exploreRouter(device.ip);
         }
