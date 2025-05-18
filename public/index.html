@@ -1,49 +1,85 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Network Topology</title>
+  <title>Enhanced Network Topology</title>
   <script src="/lib/vis-network/vis-network.min.js"></script>
   <link href="/lib/vis-network/vis-network.min.css" rel="stylesheet" />
   <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+    }
     #network {
       width: 100vw;
       height: 100vh;
-      border: 1px solid lightgray;
+      border: 1px solid #ccc;
     }
   </style>
 </head>
 <body>
   <div id="network"></div>
+
   <script>
+    function ipToInt(ip) {
+      return ip.split('.').reduce((acc, octet) => (acc << 8) + parseInt(octet, 10), 0);
+    }
+
+    function inSameSubnet(ip1, ip2, netmask) {
+      const mask = ipToInt(netmask);
+      return (ipToInt(ip1) & mask) === (ipToInt(ip2) & mask);
+    }
+
     async function loadTopology() {
       const res = await fetch('/api/topology');
       const topology = await res.json();
 
       const nodes = new Map();
-      const edges = new Set();
+      const edges = [];
 
-      // Add routers and their interfaces
+      // Add router nodes with tooltips
       topology.forEach(router => {
         nodes.set(router.routerName, {
           id: router.routerName,
           label: router.routerName,
-          group: 'router'
+          group: 'router',
+          title: router.interfaces
+            .map(i => `Interface ${i.interface}: ${i.ip} / ${i.netmask}`)
+            .join('\n')
         });
+      });
 
-        // Connect to neighbor routers
+      // Add router-router edges
+      topology.forEach(router => {
         router.neighborRouter.forEach(n => {
-          const neighborRouter = topology.find(r => r.interfaces.some(i => i.ip === n.ip));
+          const neighborRouter = topology.find(r =>
+            r.interfaces.some(i => inSameSubnet(i.ip, n.ip, i.netmask))
+          );
           if (neighborRouter) {
             const neighborName = neighborRouter.routerName;
-            const edgeId = [router.routerName, neighborName].sort().join('-');
+            const thisIf = router.interfaces.find(i =>
+              inSameSubnet(i.ip, n.ip, i.netmask)
+            );
+            const thatIf = neighborRouter.interfaces.find(i =>
+              inSameSubnet(i.ip, n.ip, i.netmask)
+            );
 
-            if (!edges.has(edgeId)) {
-              edges.add(edgeId);
+            const edgeId = [router.routerName, neighborName].sort().join('-');
+            if (!edges.some(e => e.id === edgeId)) {
+              edges.push({
+                id: edgeId,
+                from: router.routerName,
+                to: neighborName,
+                label: `${thisIf?.ip || '?'} ↔ ${thatIf?.ip || n.ip}`,
+                font: { align: 'middle' },
+                arrows: { to: { enabled: false } }
+              });
             }
           }
         });
+      });
 
-        // Connect to hosts
+      // Add host nodes and edges
+      topology.forEach(router => {
         router.host.forEach(h => {
           const hostId = h.ip;
           if (!nodes.has(hostId)) {
@@ -53,24 +89,25 @@
               group: 'host'
             });
           }
-          edges.add(`${router.routerName}->${hostId}`);
+
+          const matchedInterface = router.interfaces.find(i =>
+            inSameSubnet(i.ip, h.ip, i.netmask)
+          );
+
+          edges.push({
+            from: router.routerName,
+            to: hostId,
+            label: matchedInterface ? `via ${matchedInterface.ip}` : '',
+            font: { align: 'top' }
+          });
         });
       });
 
       const data = {
         nodes: Array.from(nodes.values()),
-        edges: Array.from(edges).map(e => {
-          if (e.includes('->')) {
-            const [from, to] = e.split('->');
-            return { from, to };
-          } else {
-            const [from, to] = e.split('-');
-            return { from, to };
-          }
-        })
+        edges: edges
       };
 
-      const container = document.getElementById('network');
       const options = {
         groups: {
           router: { shape: 'box', color: '#ADD8E6' },
@@ -83,13 +120,20 @@
             sortMethod: 'hubsize'
           }
         },
-        physics: false
+        physics: false,
+        interaction: {
+          hover: true,
+          tooltipDelay: 100
+        }
       };
 
+      const container = document.getElementById('network');
       new vis.Network(container, data, options);
     }
 
+    // Load initially and refresh every 15 mins
     loadTopology();
+    setInterval(loadTopology, 15 * 1000);
   </script>
 </body>
 </html>
